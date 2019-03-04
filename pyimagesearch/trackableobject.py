@@ -8,3 +8,8 @@ class TrackableObject:
 		# initialize a boolean used to indicate if the object has
 		# already been counted or not
 		self.counted = False
+
+		# Direction
+		self.number_of_speed_data = 0
+		self.x_speed = 0
+		self.y_speed = 0
