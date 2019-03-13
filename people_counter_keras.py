@@ -1,15 +1,5 @@
-# USAGE
-# To read and write back out to video:
-# python people_counter.py --prototxt mobilenet_ssd/MobileNetSSD_deploy.prototxt \
-#	--model mobilenet_ssd/MobileNetSSD_deploy.caffemodel --input videos/example_01.mp4 \
-#	--output output/output_01.avi
-#
-# To read from webcam and write back out to disk:
-# python people_counter.py --prototxt mobilenet_ssd/MobileNetSSD_deploy.prototxt \
-#	--model mobilenet_ssd/MobileNetSSD_deploy.caffemodel \
-#	--output output/webcam_output.avi
+from keras.applications.mobilenet_v2 import MobileNetV2
 
-# import the necessary packages
 from pyimagesearch.centroidtracker import CentroidTracker
 from pyimagesearch.trackableobject import TrackableObject
 from imutils.video import VideoStream
@@ -21,8 +11,6 @@ import time
 import dlib
 import cv2
 from stream_server import *
-
-# construct the argument parse and parse the arguments
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--prototxt", required=True,
@@ -39,19 +27,6 @@ ap.add_argument("-s", "--skip-frames", type=int, default=30,
                 help="# of skip frames between detections")
 args = vars(ap.parse_args())
 
-class StreamingThread(threading.Thread):
-    def __init__(self, name):
-        threading.Thread.__init__(self)
-        self.name = name
-        self.stream_server = StreamServer()
-
-    def run(self):
-        self.stream_server.run()
-
-streaming_thread = StreamingThread("Stream server")
-
-threading.Thread(target=streaming_thread.run, daemon=True).start()
-
 # initialize the list of class labels MobileNet SSD was trained to
 # detect
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
@@ -61,20 +36,14 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
 
 # load our serialized model from disk
 print("[INFO] loading model...")
-net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
+# net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
+model = MobileNetV2()
 
-a = True
-while a:
-    # a = False
+while True:
 
     print("[INFO] opening video file...")
     vs = cv2.VideoCapture(args["input"])
 
-    # initialize the video writer (we'll instantiate later if need be)
-    writer = None
-
-    # initialize the frame dimensions (we'll set them as soon as we read
-    # the first frame from the video)
     W = None
     H = None
 
@@ -95,6 +64,8 @@ while a:
     # start the frames per second throughput estimator
     fps = FPS().start()
 
+    frame30 = []
+
     # loop over frames from the video stream
     while True:
         # grab the next frame and handle if we are reading from either
@@ -105,24 +76,22 @@ while a:
         if frame is None:
             break
 
+        print("asd")
 
-        if totalFrames%2!=0:
-            fps.update()
-            totalFrames+=1
+        '''    
+        frame30.append(frame)
+
+        if len(frame30) < 30:
             continue
-
-
-        # resize the frame to have a maximum width of 500 pixels (the
-        # less data we have, the faster we can process it), then convert
-        # the frame from BGR to RGB for dlib
+        '''
 
         # frame = imutils.resize(frame, width=frame.shape[1]//2)
         # frame = imutils.resize(frame, width=1280)
-        frame = frame[-480:, 400:-240, :]
-        # print(frame.shape)
+        # frame = frame[-480:, 200:-200, :]
+        frame = frame[:448, :448, :]
+        frame = imutils.resize(frame, height=224, width=224)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        rgb = imutils.resize(rgb, width=rgb.shape[1])
+        print(rgb.shape)
 
         # if the frame dimensions are empty, set them
         if W is None or H is None:
@@ -135,10 +104,6 @@ while a:
             writer = cv2.VideoWriter(args["output"], fourcc, 30,
                                      (W, H), True)
 
-        # initialize the current status along with our list of bounding
-        # box rectangles returned by either (1) our object detector or
-        # (2) the correlation trackers
-        status = "Waiting"
         rects = []
 
         # check to see if we should run a more computationally expensive
@@ -150,10 +115,14 @@ while a:
 
             # convert the frame to a blob and pass the blob through the
             # network and obtain the detections
-            blob = cv2.dnn.blobFromImage(frame, 0.007843, (W, H), 127.5)
-            net.setInput(blob)
-            detections = net.forward()
-
+            # blob = cv2.dnn.blobFromImage(frame, 0.007843, (W, H), 127.5)
+            # print(blob.shape)
+            # net.setInput([blob, blob])
+            # detections = net.forward()
+            t = time.time()
+            detections = model.predict(np.expand_dims(frame, axis=0))
+            print(time.time() - t)
+            print(detections.shape)
             (H, W) = rgb.shape[:2]
 
             # loop over the detections
@@ -192,6 +161,9 @@ while a:
         # otherwise, we should utilize our object *trackers* rather than
         # object *detectors* to obtain a higher frame processing throughput
         else:
+            frame = imutils.resize(frame, width=frame.shape[1] * 3 // 4)
+            (H, W) = frame.shape[:2]
+
             # loop over the trackers
             for tracker in trackers:
                 # set the status of our system to be 'tracking' rather
@@ -210,9 +182,6 @@ while a:
 
                 # add the bounding box coordinates to the rectangles list
                 rects.append((startX, startY, endX, endY))
-
-        frame = imutils.resize(frame, width=frame.shape[1])
-        (H, W) = frame.shape[:2]
 
         # draw a horizontal line in the center of the frame -- once an
         # object crosses this line we will determine whether they were
@@ -353,3 +322,4 @@ else:
 
 # close any open windows
 cv2.destroyAllWindows()
+
