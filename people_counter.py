@@ -29,7 +29,7 @@ ap.add_argument("-p", "--prototxt", required=True,
                 help="path to Caffe 'deploy' prototxt file")
 ap.add_argument("-m", "--model", required=True,
                 help="path to Caffe pre-trained model")
-ap.add_argument("-i", "--input", type=str, required=True,
+ap.add_argument("-i", "--input", type=str,
                 help="path to optional input video file")
 ap.add_argument("-o", "--output", type=str,
                 help="path to optional output video file")
@@ -64,11 +64,18 @@ print("[INFO] loading model...")
 net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 
 a = True
+
 while a:
     # a = False
+    if args["input"] is None:
+        a = False
 
-    print("[INFO] opening video file...")
-    vs = cv2.VideoCapture(args["input"])
+    if args["input"] is None:
+        print("[INFO] starting video stream...")
+        vs = cv2.VideoCapture(0)
+    else:
+        print("[INFO] opening video file...")
+        vs = cv2.VideoCapture(args["input"])
 
     # initialize the video writer (we'll instantiate later if need be)
     writer = None
@@ -100,13 +107,13 @@ while a:
         # grab the next frame and handle if we are reading from either
         # VideoCapture or VideoStream
         frame = vs.read()
-        frame = frame[1] if args.get("input", False) else frame
+        frame = frame[1] if args["input"] is None else frame
 
         if frame is None:
             break
 
 
-        if totalFrames%2!=0:
+        if args["input"] is not None and totalFrames%2!=0:
             fps.update()
             totalFrames+=1
             continue
