@@ -118,7 +118,10 @@ while a:
 
         # frame = imutils.resize(frame, width=frame.shape[1]//2)
         # frame = imutils.resize(frame, width=1280)
-        frame = frame[-480:, 400:-240, :]
+        if args["input"] == "videos\walkingpeople.mp4":
+            frame = frame[-480:, 400:-240, :]
+        else:
+            frame = imutils.resize(frame, width=640)
         # print(frame.shape)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -315,7 +318,7 @@ while a:
         ss.c.acquire()
         ss.current_frame = np.copy(frame)
 
-        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right])
+        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right], totalFrames//25)
 
         ss.c.notify_all()
         ss.c.release()

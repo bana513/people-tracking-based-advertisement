@@ -47,6 +47,34 @@ var myLineChart = new Chart(ctx, {
       pointHitRadius: 10,
       pointBorderWidth: 2,
       data: [],
+    },{
+      label: "OUT",
+      lineTension: 0.25,
+      backgroundColor: "rgba(231,74,59, 0.05)",
+      borderColor: "rgba(231,74,59, 1)",
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(231,74,59, 1)",
+      pointBorderColor: "rgba(231,74,59, 1)",
+      pointHoverRadius: 3,
+      pointHoverBackgroundColor: "rgba(231,74,59, 1)",
+      pointHoverBorderColor: "rgba(231,74,59, 1)",
+      pointHitRadius: 10,
+      pointBorderWidth: 2,
+      data: [],
+    },{
+      label: "IN",
+      lineTension: 0.25,
+      backgroundColor: "rgba(28,200,138, 0.05)",
+      borderColor: "rgba(28,200,138, 1)",
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(28,200,138, 1)",
+      pointBorderColor: "rgba(28,200,138, 1)",
+      pointHoverRadius: 3,
+      pointHoverBackgroundColor: "rgba(28,200,138, 1)",
+      pointHoverBorderColor: "rgba(28,200,138, 1)",
+      pointHitRadius: 10,
+      pointBorderWidth: 2,
+      data: [],
     }],
   },
   options: {
@@ -62,7 +90,7 @@ var myLineChart = new Chart(ctx, {
     scales: {
       xAxes: [{
         time: {
-          unit: 'date'
+          unit: 'int'
         },
         gridLines: {
           display: false,
@@ -91,7 +119,7 @@ var myLineChart = new Chart(ctx, {
       }],
     },
     legend: {
-      display: false
+      display: true
     },
     tooltips: {
         enabled: false,
@@ -121,14 +149,37 @@ var myLineChart = new Chart(ctx, {
 if (!!window.EventSource) {
   var source = new EventSource('/number_of_people');
   source.onmessage = function(e) {
-      console.log(myLineChart);
+      // // console.log(myLineChart);
+      // var chart = myLineChart.config.data;
+      // // console.log();
+      // var d = parseInt(e.data, 0);
+      // chart.datasets[0].data.push(d);
+      // chart.labels.push(e.data);
+      // if(chart.datasets[0].data.length > 30){
+      //    chart.datasets[0].data.splice(0, 1);
+      //    chart.labels.splice(0, 1);
+      // }
+      // myLineChart.update();
+      // console.log(myLineChart);
+
+      console.log(e.data);
       var chart = myLineChart.config.data;
-      console.log();
-      var d = parseInt(e.data, 0);
-      chart.datasets[0].data.push(d);
-      chart.labels.push(e.data);
-      if(chart.datasets[0].data.length > 30){
+      var data_array = e.data.split(" ");
+      var data_array_int = data_array.map(function(e) {
+          e = parseInt(e, 0);
+          return e;
+        });
+
+      chart.datasets[0].data.push(data_array_int[1]);
+      chart.datasets[1].data.push(data_array_int[2]);
+      chart.datasets[2].data.push(data_array_int[3]);
+      chart.labels.push(data_array_int[0].toString());
+
+
+      if(chart.labels.length > 30){
          chart.datasets[0].data.splice(0, 1);
+         chart.datasets[1].data.splice(0, 1);
+         chart.datasets[2].data.splice(0, 1);
          chart.labels.splice(0, 1);
       }
       myLineChart.update();

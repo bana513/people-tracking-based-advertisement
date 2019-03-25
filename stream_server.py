@@ -7,6 +7,22 @@ from imutils.video import FPS
 import itertools
 import time
 
+class ChartData:
+    """
+    Stores data for chart streaming.
+    """
+    def __init__(self):
+        self.timestap = []
+        self.movements = []
+
+    def getLast(self, N=1):
+        return {'timestamp': self.timestap[-N:], 'movements': self.movements[-N:]}
+
+    def append(self, data):
+        self.timestap.append(data['timestamp'])
+        self.movements.append(data['movements'])
+
+
 class StreamServer:
     def __init__(self):
         self.c = threading.Condition()
@@ -16,11 +32,9 @@ class StreamServer:
         self.current_frame = None
 
         self.app = Flask(__name__)
-        Bootstrap(self.app)
-        self.app.config['SECRET_KEY'] = 'secret!'
-        self.socketio = SocketIO(self.app)
+        # Bootstrap(self.app)
 
-        self.movements = []
+        self.chart_data = ChartData()
 
         self.advertisement_time = 0
         self.advertisement_state = 'budget'
@@ -29,8 +43,6 @@ class StreamServer:
         images = [open('images/' + f + '.jpg', 'rb').read() for f in im_names]
         for i, im in enumerate(images):
             self.images[im_names[i]] = im
-
-        self.number_of_people = []
 
         self.fps_video_feed = FPS().start()
         self.fps_gen = FPS().start()
@@ -50,17 +62,17 @@ class StreamServer:
             return Response(self.getAdvertisement(),
                             mimetype='multipart/x-mixed-replace; boundary=frame')
 
-        @self.app.route('/line')
-        def line():
-            self.c.acquire()
-            line_labels = [i for i in range(len(self.number_of_people)//30)]
-            # print(line_labels)
-            line_values = self.number_of_people[::30].copy()
-            # print(self.number_of_people)
-            self.c.notify_all()
-            self.c.release()
-            return render_template('chart_full.html', title='Number of people on frame', max=20,
-                                   labels=line_labels, values=line_values)
+        # @self.app.route('/line')
+        # def line():
+        #     self.c.acquire()
+        #     line_labels = [i for i in range(len(self.number_of_people)//30)]
+        #     # print(line_labels)
+        #     line_values = self.number_of_people[::30].copy()
+        #     # print(self.number_of_people)
+        #     self.c.notify_all()
+        #     self.c.release()
+        #     return render_template('chart_full.html', title='Number of people on frame', max=20,
+        #                            labels=line_labels, values=line_values)
 
         @self.app.route('/number_of_people')
         def number_of_people():
@@ -79,18 +91,17 @@ class StreamServer:
                     while True:
                         self.chartCondition.acquire()
                         self.chartCondition.wait()
-                        data = self.number_of_people[-1]
+                        data = self.chart_data.getLast(1);
                         self.chartCondition.notify_all()
                         self.chartCondition.release()
-                        yield "data: %d\n\n" % (data)
+                        yield "data: %d %d %d %d\n\n" % (data['timestamp'][0],
+                                                         data['movements'][0][0]+data['movements'][0][1], # IN + OUT
+                                                         data['movements'][0][0],
+                                                         data['movements'][0][1])
 
                 return Response(events(), content_type='text/event-stream')
             # return redirect(url_for('static', filename='data_stream.html'))
-            return render_template('data_stream.html')
-
-        @self.socketio.on('test')  # Decorator to catch an event called "my event":
-        def test_message(message):  # test_message() is the event callback function.
-            emit('my response', {'data': 'got it!'})  # Trigger a new event called "my response"
+            return # render_template('data_stream.html')
 
     def getFps(self):
         self.fps_gen.stop()
@@ -103,19 +114,19 @@ class StreamServer:
 
         return ret
 
-    def getPeopleChart(self):
-        while True:
-            self.c.acquire()
-            self.c.wait()
-            line_labels = [i for i in range(len(self.number_of_people))]
-            print(line_labels)
-            line_values = self.number_of_people.copy()
-            print(self.number_of_people)
-            template = render_template('chart_full.html', title='Number of people on frame', max=20,
-                                       labels=line_labels, values=line_values)
-            self.c.release()
-            yield (b'--frame\r\n'
-                   b'Content-Type: text/html\r\n\r\n' + template + b'\r\n')
+    # def getPeopleChart(self):
+    #     while True:
+    #         self.c.acquire()
+    #         self.c.wait()
+    #         line_labels = [i for i in range(len(self.number_of_people))]
+    #         print(line_labels)
+    #         line_values = self.number_of_people.copy()
+    #         print(self.number_of_people)
+    #         template = render_template('chart_full.html', title='Number of people on frame', max=20,
+    #                                    labels=line_labels, values=line_values)
+    #         self.c.release()
+    #         yield (b'--frame\r\n'
+    #                b'Content-Type: text/html\r\n\r\n' + template + b'\r\n')
 
     def gen(self):
         while True:
@@ -140,12 +151,12 @@ class StreamServer:
         self.app.run(host='127.0.0.1', port=8888, debug=False)
 
 
-    def setMovingPeople(self, movements):
+    def setMovingPeople(self, movements, timestamp):
         prev_adv = self.advertisement_state
-        self.movements = movements
+
+        self.chart_data.append({'timestamp': timestamp, 'movements': movements})
 
         moving_out, moving_in, moving_in_left, moving_in_right = movements
-        self.number_of_people.append(moving_in + moving_out)
 
         self.chartCounter += 1
         if(self.chartCounter >= 15):
