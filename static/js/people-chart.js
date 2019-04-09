@@ -27,7 +27,12 @@ function number_format(number, decimals, dec_point, thousands_sep) {
   return s.join(dec);
 }
 
-// Area Chart Example
+Number.prototype.pad = function(size) {
+    var s = String(this);
+    while (s.length < (size || 2)) {s = "0" + s;}
+    return s;
+}
+
 var ctx = document.getElementById("myAreaChart");
 var myLineChart = new Chart(ctx, {
   type: 'line',
@@ -90,7 +95,111 @@ var myLineChart = new Chart(ctx, {
     scales: {
       xAxes: [{
         time: {
-          unit: 'int'
+          unit: 'time'
+        },
+        gridLines: {
+          display: false,
+          drawBorder: false
+        },
+        ticks: {
+          maxTicksLimit: 7
+        }
+      }],
+      yAxes: [{
+        ticks: {
+          maxTicksLimit: 5,
+          padding: 10,
+          // Include a dollar sign in the ticks
+          callback: function(value, index, values) {
+            return number_format(value);
+          }
+        },
+        gridLines: {
+          color: "rgb(234, 236, 244)",
+          zeroLineColor: "rgb(234, 236, 244)",
+          drawBorder: false,
+          borderDash: [2],
+          zeroLineBorderDash: [2]
+        }
+      }],
+    },
+    legend: {
+      display: true
+    },
+    tooltips: {
+        enabled: false,
+        backgroundColor: "rgb(255,255,255)",
+        bodyFontColor: "#858796",
+        titleMarginBottom: 10,
+        titleFontColor: '#6e707e',
+        titleFontSize: 14,
+        borderColor: '#dddfeb',
+        borderWidth: 1,
+        xPadding: 15,
+        yPadding: 15,
+        displayColors: false,
+        intersect: false,
+        mode: 'index',
+        caretPadding: 10,
+        callbacks: {
+            label: function (tooltipItem, chart) {
+                var datasetLabel = chart.datasets[tooltipItem.datasetIndex].label || '';
+                return datasetLabel + ': $' + number_format(tooltipItem.yLabel);
+            }
+        }
+    }
+  }
+});
+
+var ctx2 = document.getElementById("myAreaChart2");
+var myLineChart2 = new Chart(ctx2, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: "LEFT",
+      lineTension: 0.25,
+      backgroundColor: "rgba(231,74,59, 0.05)",
+      borderColor: "rgba(231,74,59, 1)",
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(231,74,59, 1)",
+      pointBorderColor: "rgba(231,74,59, 1)",
+      pointHoverRadius: 3,
+      pointHoverBackgroundColor: "rgba(231,74,59, 1)",
+      pointHoverBorderColor: "rgba(231,74,59, 1)",
+      pointHitRadius: 10,
+      pointBorderWidth: 2,
+      data: [],
+    },{
+      label: "RIGHT",
+      lineTension: 0.25,
+      backgroundColor: "rgba(28,200,138, 0.05)",
+      borderColor: "rgba(28,200,138, 1)",
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(28,200,138, 1)",
+      pointBorderColor: "rgba(28,200,138, 1)",
+      pointHoverRadius: 3,
+      pointHoverBackgroundColor: "rgba(28,200,138, 1)",
+      pointHoverBorderColor: "rgba(28,200,138, 1)",
+      pointHitRadius: 10,
+      pointBorderWidth: 2,
+      data: [],
+    }],
+  },
+  options: {
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        left: 10,
+        right: 25,
+        top: 25,
+        bottom: 0
+      }
+    },
+    scales: {
+      xAxes: [{
+        time: {
+          unit: 'time'
         },
         gridLines: {
           display: false,
@@ -164,16 +273,24 @@ if (!!window.EventSource) {
 
       console.log(e.data);
       var chart = myLineChart.config.data;
+      var chart2 = myLineChart2.config.data;
+
       var data_array = e.data.split(" ");
       var data_array_int = data_array.map(function(e) {
           e = parseInt(e, 0);
           return e;
         });
 
+      var time = Math.floor(data_array_int[0]/60).toString() + ":" + (data_array_int[0]%60).pad(2);
+
       chart.datasets[0].data.push(data_array_int[1]);
       chart.datasets[1].data.push(data_array_int[2]);
       chart.datasets[2].data.push(data_array_int[3]);
-      chart.labels.push(data_array_int[0].toString());
+      chart.labels.push(time);
+
+      chart2.datasets[0].data.push(data_array_int[4]);
+      chart2.datasets[1].data.push(data_array_int[5]);
+      chart2.labels.push(time);
 
 
       if(chart.labels.length > 30){
@@ -181,7 +298,12 @@ if (!!window.EventSource) {
          chart.datasets[1].data.splice(0, 1);
          chart.datasets[2].data.splice(0, 1);
          chart.labels.splice(0, 1);
+
+         chart2.datasets[0].data.splice(0, 1);
+         chart2.datasets[1].data.splice(0, 1);
+         chart2.labels.splice(0, 1);
       }
       myLineChart.update();
+      myLineChart2.update();
   }
 }

@@ -63,16 +63,24 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
 print("[INFO] loading model...")
 net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 
-a = True
+start_time = time.time()
 
+a = True
 while a:
     # a = False
     if args["input"] is None:
         a = False
 
+
     if args["input"] is None:
         print("[INFO] starting video stream...")
-        vs = cv2.VideoCapture(0)
+        vs = cv2.VideoCapture(1)
+
+        if vs.isOpened():
+            print("Camera OK")
+        else:
+            print("Camera is not opened")
+
     else:
         print("[INFO] opening video file...")
         vs = cv2.VideoCapture(args["input"])
@@ -107,7 +115,9 @@ while a:
         # grab the next frame and handle if we are reading from either
         # VideoCapture or VideoStream
         frame = vs.read()
-        frame = frame[1] if args["input"] is None else frame
+        # print(frame)
+        # frame = frame[1] if args["input"] is None else frame
+        frame = frame[1]
 
         if frame is None:
             break
@@ -265,11 +275,11 @@ while a:
 
                 # print("{0}: {1:.2f} {2:.2f}".format(to.objectID, to.x_speed, to.y_speed))
 
-                if to.y_speed < 0: moving_out += 1
-                if to.y_speed > 0:
+                if to.y_speed < -2: moving_out += 1
+                if to.y_speed > 2:
                     moving_in += 1
-                    if to.x_speed < -.5: moving_in_left += 1
-                    if to.x_speed > .5: moving_in_right += 1
+                if to.x_speed < -2: moving_in_left += 1
+                if to.x_speed > 2: moving_in_right += 1
 
                 # check to see if the object has been counted or not
                 if not to.counted:
@@ -319,13 +329,13 @@ while a:
 
         # current_frame = np.array(720,1280,3)
         # show the output frame
-        # cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", frame)
 
         ss = streaming_thread.stream_server
         ss.c.acquire()
         ss.current_frame = np.copy(frame)
 
-        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right], totalFrames//25)
+        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right], totalFrames//25 if args["input"] is None else time.time()-start_time)
 
         ss.c.notify_all()
         ss.c.release()
@@ -354,7 +364,7 @@ if writer is not None:
     writer.release()
 
 # if we are not using a video file, stop the camera video stream
-if not args.get("input", False):
+if args["input"] is not None:
     vs.stop()
 
 # otherwise, release the video file pointer

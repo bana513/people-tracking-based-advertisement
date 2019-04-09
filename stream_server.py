@@ -94,10 +94,12 @@ class StreamServer:
                         data = self.chart_data.getLast(1);
                         self.chartCondition.notify_all()
                         self.chartCondition.release()
-                        yield "data: %d %d %d %d\n\n" % (data['timestamp'][0],
+                        yield "data: %d %d %d %d %d %d\n\n" % (data['timestamp'][0],
                                                          data['movements'][0][0]+data['movements'][0][1], # IN + OUT
                                                          data['movements'][0][0],
-                                                         data['movements'][0][1])
+                                                         data['movements'][0][1],
+                                                         data['movements'][0][2],
+                                                         data['movements'][0][3])
 
                 return Response(events(), content_type='text/event-stream')
             # return redirect(url_for('static', filename='data_stream.html'))
