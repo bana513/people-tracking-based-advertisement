@@ -99,13 +99,15 @@
 					</div>
 					<div class="card-body">
                         <form method=post action="/upload_advertisement" enctype=multipart/form-data>
-                            <label for="id">Priority ID:</label>
-                            <input type="text" name="id"></br>
+
+{#                            <label for="id">Priority ID:</label>#}
+{#                            <input type="text" name="id"></br>#}
 
                             <label for="description">Desciption:</label>
                             <input type="text" name="description"></br>
 
-                            <p>Options:  total_people, moving_in, moving_out, moving_left, moving_right</p></br>
+                            <p>Options:  total_people, moving_in, moving_out, moving_left, moving_right</p>
+
 
                             <!--
                             <label class="btn btn-light btn-icon-split" style="width: 200px;">
@@ -120,7 +122,7 @@
                             -->
                             <input type="file" name=file></br>
 
-                            <button type=submit class="btn btn-success btn-icon-split">
+                            <button type=submit class="btn btn-success btn-icon-split m-2">
                                     <span class="icon text-white-50">
                                       <i class="fas fa-check"></i>
                                     </span>
