@@ -6,6 +6,12 @@ import threading
 from imutils.video import FPS
 import itertools
 import time
+from upload_advertisement import upload
+# from advertisement_condition import get_advertisement
+import advertisement_condition
+import sys, importlib
+
+UPLOAD_FOLDER = r'uploads'
 
 class ChartData:
     """
@@ -29,20 +35,30 @@ class StreamServer:
         self.chartCondition = threading.Condition()
         self.chartCounter = 0 # Refresh people counter only when detection run
 
+        self.advertisement_condition = threading.Condition()
+
         self.current_frame = None
 
         self.app = Flask(__name__)
         # Bootstrap(self.app)
+        self.app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
         self.chart_data = ChartData()
 
         self.advertisement_time = 0
-        self.advertisement_state = 'budget'
+
+        self.advertisement_state = None
+        self.advertisement_description = ''
         self.images = {}
-        im_names = ['down', 'up', 'left', 'right', 'budget']
-        images = [open('images/' + f + '.jpg', 'rb').read() for f in im_names]
-        for i, im in enumerate(images):
-            self.images[im_names[i]] = im
+        self.set_advertisement_image((None, ''))
+
+
+        # self.advertisement_state = 'budget'
+        # self.images = {}
+        # im_names = ['down', 'up', 'left', 'right', 'budget']
+        # images = [open('images/' + f + '.jpg', 'rb').read() for f in im_names]
+        # for i, im in enumerate(images):
+        #     self.images[im_names[i]] = im
 
         self.fps_video_feed = FPS().start()
         self.fps_gen = FPS().start()
@@ -50,6 +66,15 @@ class StreamServer:
         @self.app.route('/')
         def index():
             return render_template('index.html')
+
+        @self.app.route('/advertisements')
+        def advertisements():
+            return render_template('advertisements.html')
+
+        @self.app.route('/upload_advertisement', methods=['POST'])
+        def upload_advertisement():
+            upload(request, self.app.config['UPLOAD_FOLDER'], self.advertisement_condition)
+            return render_template('advertisements.html')
 
         @self.app.route('/video_feed')
         def video_feed():
@@ -62,32 +87,10 @@ class StreamServer:
             return Response(self.getAdvertisement(),
                             mimetype='multipart/x-mixed-replace; boundary=frame')
 
-        # @self.app.route('/line')
-        # def line():
-        #     self.c.acquire()
-        #     line_labels = [i for i in range(len(self.number_of_people)//30)]
-        #     # print(line_labels)
-        #     line_values = self.number_of_people[::30].copy()
-        #     # print(self.number_of_people)
-        #     self.c.notify_all()
-        #     self.c.release()
-        #     return render_template('chart_full.html', title='Number of people on frame', max=20,
-        #                            labels=line_labels, values=line_values)
-
         @self.app.route('/number_of_people')
         def number_of_people():
             if request.headers.get('accept') == 'text/event-stream':
                 def events():
-                    # for i, c in enumerate(itertools.cycle('\|/-')):
-                    #     yield "data: %s %d\n\n" % (c, i)
-                    #     time.sleep(.1)  # an artificial delay
-
-                    # i = 0
-                    # while True:
-                    #     i += 1
-                    #     yield "data: %d\n\n" % (i)
-                    #     time.sleep(.5)
-
                     while True:
                         self.chartCondition.acquire()
                         self.chartCondition.wait()
@@ -105,6 +108,26 @@ class StreamServer:
             # return redirect(url_for('static', filename='data_stream.html'))
             return # render_template('data_stream.html')
 
+    def set_advertisement_image(self, condition):
+        print(condition)
+        self.advertisement_description = condition[1]
+        image = condition[0]
+
+        if not image:
+            image = 'none.jpg'
+
+        if image not in self.images:
+            image_bin = open('uploads/' + image, 'rb').read()
+            self.images[image] = image_bin
+
+        # Reload advertisement_condition.py after modifying conditions
+        old__ref = advertisement_condition.get_advertisement
+        importlib.reload(advertisement_condition)
+        old__ref.__code__ = advertisement_condition.get_advertisement.__code__
+
+        self.advertisement_state = image
+        print(self.advertisement_state)
+
     def getFps(self):
         self.fps_gen.stop()
         self.fps_video_feed.stop()
@@ -115,20 +138,6 @@ class StreamServer:
         self.fps_video_feed = FPS().start()
 
         return ret
-
-    # def getPeopleChart(self):
-    #     while True:
-    #         self.c.acquire()
-    #         self.c.wait()
-    #         line_labels = [i for i in range(len(self.number_of_people))]
-    #         print(line_labels)
-    #         line_values = self.number_of_people.copy()
-    #         print(self.number_of_people)
-    #         template = render_template('chart_full.html', title='Number of people on frame', max=20,
-    #                                    labels=line_labels, values=line_values)
-    #         self.c.release()
-    #         yield (b'--frame\r\n'
-    #                b'Content-Type: text/html\r\n\r\n' + template + b'\r\n')
 
     def gen(self):
         while True:
@@ -171,19 +180,35 @@ class StreamServer:
         if self.advertisement_time < 30:
             return
 
-        if moving_in + moving_out < 5:
-            self.advertisement_state = 'budget'
-        else:
-            if moving_out > moving_in:
-                self.advertisement_state = 'up'
-            else:
-                if max(moving_in_right, moving_in_left) == 0:
-                    self.advertisement_state = 'down'
-                else:
-                    if moving_in_left > moving_in_right:
-                        self.advertisement_state = 'left'
-                    else:
-                        self.advertisement_state = 'right'
+        # Csak kód referencia váltás van, nem kell lock
+        # (Ugyanazon a szálon fut a kódváltás, mint a felhasználás)
+        # self.advertisement_condition.acquire()
+        # self.advertisement_condition.wait()
+
+        self.set_advertisement_image(
+            advertisement_condition.get_advertisement(
+                total_people=moving_in+moving_out,
+                moving_in=moving_in,
+                moving_out=moving_out,
+                moving_left=moving_in_left,
+                moving_right=moving_in_right))
+
+        # self.advertisement_condition.notify_all()
+        # self.advertisement_condition.release()
+
+        # if moving_in + moving_out < 5:
+        #     self.advertisement_state = 'budget'
+        # else:
+        #     if moving_out > moving_in:
+        #         self.advertisement_state = 'up'
+        #     else:
+        #         if max(moving_in_right, moving_in_left) == 0:
+        #             self.advertisement_state = 'down'
+        #         else:
+        #             if moving_in_left > moving_in_right:
+        #                 self.advertisement_state = 'left'
+        #             else:
+        #                 self.advertisement_state = 'right'
 
         if prev_adv != self.advertisement_state:
             self.advertisement_time = 0

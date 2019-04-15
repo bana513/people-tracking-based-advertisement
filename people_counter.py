@@ -39,6 +39,7 @@ ap.add_argument("-s", "--skip-frames", type=int, default=30,
                 help="# of skip frames between detections")
 args = vars(ap.parse_args())
 
+
 class StreamingThread(threading.Thread):
     def __init__(self, name):
         threading.Thread.__init__(self)
@@ -47,6 +48,7 @@ class StreamingThread(threading.Thread):
 
     def run(self):
         self.stream_server.run()
+
 
 streaming_thread = StreamingThread("Stream server")
 
@@ -70,7 +72,6 @@ while a:
     # a = False
     if args["input"] is None:
         a = False
-
 
     if args["input"] is None:
         print("[INFO] starting video stream...")
@@ -122,12 +123,10 @@ while a:
         if frame is None:
             break
 
-
-        if args["input"] is not None and totalFrames%2!=0:
+        if args["input"] is not None and totalFrames % 2 != 0:
             fps.update()
-            totalFrames+=1
+            totalFrames += 1
             continue
-
 
         # resize the frame to have a maximum width of 500 pixels (the
         # less data we have, the faster we can process it), then convert
@@ -327,15 +326,15 @@ while a:
         if writer is not None:
             writer.write(frame)
 
-        # current_frame = np.array(720,1280,3)
         # show the output frame
-        cv2.imshow("Frame", frame)
+        # cv2.imshow("Frame", frame)
 
         ss = streaming_thread.stream_server
         ss.c.acquire()
         ss.current_frame = np.copy(frame)
 
-        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right], totalFrames//25 if args["input"] is None else time.time()-start_time)
+        ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right],
+                           totalFrames // 25 if args["input"] is None else time.time() - start_time)
 
         ss.c.notify_all()
         ss.c.release()

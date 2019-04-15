@@ -1,12 +1,12 @@
 import re
 
+KEYWORDS = ['and', 'or', 'moving_in', 'moving_out', 'moving_left', 'moving_right']
+
 def validate(inp):
     out = re.search(r'^[^\(]*\(.*\)[^\)]*\)$', config)
     if out: return True
-    if inp == 'and': return True
-    if inp == 'or': return True
-
-
+    if inp in KEYWORDS: return True
+    
     raise Exception('Validation error, unknown keyword: \'{}\''.format(inp))
 
 def getLinkage(inp):

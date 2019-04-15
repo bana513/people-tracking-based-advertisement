@@ -32,7 +32,7 @@
       <!-- Sidebar - Brand -->
       <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/">
         <div class="sidebar-brand-icon">
-          
+
 		  <img src="static/img/logo.png" height="35" width="35">
         </div>
         <div class="sidebar-brand-text mx-3">Admin page</div>
@@ -42,7 +42,7 @@
       <hr class="sidebar-divider my-0">
 
       <!-- Nav Item - Dashboard -->
-      <li class="nav-item active">
+      <li class="nav-item">
         <a class="nav-link" href="/">
           <i class="fas fa-fw fa-tachometer-alt"></i>
           <span>Dashboard</span></a>
@@ -57,8 +57,8 @@
       </div>
 
       <!-- Nav Item - Utilities Collapse Menu -->
-      <li class="nav-item">
-        <a class="nav-link" href="/advertisements">
+      <li class="nav-item active">
+        <a class="nav-link" href="advertisements.html">
           <i class="fas fa-fw fa-tachometer-alt"></i>
           <span>Advertiments</span></a>
       </li>
@@ -85,96 +85,51 @@
 
           <!-- Page Heading -->
           <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800 m-2">Dashboard</h1>
+            <h1 class="h3 mb-0 text-gray-800 m-2">Advertisement settings</h1>
           </div>
 
           <!-- Content Row -->
           <div class="row">
-		  
+
 			<!-- Illustrations -->
-			<div class="col-xl-6 col-lg-6">
+			<div class="col-12">
 				<div class="card shadow mb-4">
 					<div class="card-header py-3">
-					  <h6 class="m-0 font-weight-bold text-primary">Camera</h6>
+					  <h6 class="m-0 font-weight-bold text-primary">Add new rule</h6>
 					</div>
 					<div class="card-body">
-                        <!--  width="640px" height="480px" -->
-						<img width="100%" src="{{ url_for('video_feed') }}"/>
+                        <form method=post action="/upload_advertisement" enctype=multipart/form-data>
+                            <label for="id">Priority ID:</label>
+                            <input type="text" name="id"></br>
+
+                            <label for="description">Desciption:</label>
+                            <input type="text" name="description"></br>
+
+                            <p>Options:  total_people, moving_in, moving_out, moving_left, moving_right</p></br>
+
+                            <!--
+                            <label class="btn btn-light btn-icon-split" style="width: 200px;">
+                                <span class="icon text-white-50">
+                                  <i class="fas fa-flag"></i>
+                                </span>
+                                <span class="text">Choose file</span>
+                                <input type="file" name=file style="display: none;" onchange='$("#upload-file-info").html($(this).val());'>
+
+                            </label>
+                            <span class='label label-info' id="upload-file-info"></span>
+                            -->
+                            <input type="file" name=file></br>
+
+                            <button type=submit class="btn btn-success btn-icon-split">
+                                    <span class="icon text-white-50">
+                                      <i class="fas fa-check"></i>
+                                    </span>
+                                    <span class="text">Upload</span>
+                            </button>
+                        </form>
 					</div>
 				</div>
 			</div>
-
-			<!-- Illustrations -->
-			<div class="col-xl-6 col-lg-6">
-				<div class="card shadow mb-4">
-					<div class="card-header py-3">
-					  <h6 class="m-0 font-weight-bold text-primary">Advertisement</h6>
-					</div>
-					<div class="card-body">
-                        <div class="card m-1 border-left-info">
-                            <p id="advertisementMessage" class="card-body p-1 m-0">asd</p>
-                        </div>
-
-						<img width="100%" src="{{ url_for('advertisement') }}"/>
-					</div>
-				</div>
-			</div>
-			
-            <!-- Area Chart 1-->
-            <div class="col-xl-6 col-md-12">
-              <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                  <h6 class="m-0 font-weight-bold text-primary">People on camera</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
-                </div>
-                <!-- Card Body -->
-                <div class="card-body">
-                  <div class="chart-area">
-                    <canvas id="myAreaChart"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-              <!-- Area Chart 2-->
-            <div class="col-xl-6 col-md-12">
-              <div class="card shadow mb-4">
-                <!-- Card Header - Dropdown -->
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                  <h6 class="m-0 font-weight-bold text-primary">People on camera</h6>
-                  <div class="dropdown no-arrow">
-                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                      <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
-                      <div class="dropdown-header">Dropdown Header:</div>
-                      <a class="dropdown-item" href="#">Action</a>
-                      <a class="dropdown-item" href="#">Another action</a>
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                  </div>
-                </div>
-                <!-- Card Body -->
-                <div class="card-body">
-                  <div class="chart-area">
-                    <canvas id="myAreaChart2"></canvas>
-                  </div>
-                </div>
-              </div>
-            </div>
 
           </div>
 
