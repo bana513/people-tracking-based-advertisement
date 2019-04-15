@@ -275,7 +275,7 @@ if (!!window.EventSource) {
       var chart = myLineChart.config.data;
       var chart2 = myLineChart2.config.data;
 
-      var data_array = e.data.split(" ");
+      var data_array = e.data.split(";");
       var data_array_int = data_array.map(function(e) {
           e = parseInt(e, 0);
           return e;
@@ -305,5 +305,65 @@ if (!!window.EventSource) {
       }
       myLineChart.update();
       myLineChart2.update();
+  }
+}
+
+if (!!window.EventSource) {
+  var source = new EventSource('/number_of_people');
+  source.onmessage = function(e) {
+      // // console.log(myLineChart);
+      // var chart = myLineChart.config.data;
+      // // console.log();
+      // var d = parseInt(e.data, 0);
+      // chart.datasets[0].data.push(d);
+      // chart.labels.push(e.data);
+      // if(chart.datasets[0].data.length > 30){
+      //    chart.datasets[0].data.splice(0, 1);
+      //    chart.labels.splice(0, 1);
+      // }
+      // myLineChart.update();
+      // console.log(myLineChart);
+
+      console.log(e.data);
+      var chart = myLineChart.config.data;
+      var chart2 = myLineChart2.config.data;
+
+      var data_array = e.data.split(";");
+      var data_array_int = data_array.map(function(e) {
+          e = parseInt(e, 0);
+          return e;
+        });
+
+      var time = Math.floor(data_array_int[0]/60).toString() + ":" + (data_array_int[0]%60).pad(2);
+
+      chart.datasets[0].data.push(data_array_int[1]);
+      chart.datasets[1].data.push(data_array_int[2]);
+      chart.datasets[2].data.push(data_array_int[3]);
+      chart.labels.push(time);
+
+      chart2.datasets[0].data.push(data_array_int[4]);
+      chart2.datasets[1].data.push(data_array_int[5]);
+      chart2.labels.push(time);
+
+
+      if(chart.labels.length > 30){
+         chart.datasets[0].data.splice(0, 1);
+         chart.datasets[1].data.splice(0, 1);
+         chart.datasets[2].data.splice(0, 1);
+         chart.labels.splice(0, 1);
+
+         chart2.datasets[0].data.splice(0, 1);
+         chart2.datasets[1].data.splice(0, 1);
+         chart2.labels.splice(0, 1);
+      }
+      myLineChart.update();
+      myLineChart2.update();
+  }
+
+  var description = document.getElementById("advertisementMessage");
+  var description_source = new EventSource('/advertisement_description');
+  description_source.onmessage = function(e) {
+      console.log(e.data);
+      description.innerHTML = e.data;
   }
 }

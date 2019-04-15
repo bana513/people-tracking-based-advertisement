@@ -87,6 +87,18 @@ class StreamServer:
             return Response(self.getAdvertisement(),
                             mimetype='multipart/x-mixed-replace; boundary=frame')
 
+        @self.app.route('/advertisement_description')
+        def advertisement_description():
+            if request.headers.get('accept') == 'text/event-stream':
+                def events():
+                    while True:
+                        self.advertisement_condition.acquire()
+                        self.advertisement_condition.wait()
+                        self.advertisement_condition.release()
+                        yield "data: %s\n\n" % (self.advertisement_description)
+                return Response(events(), content_type='text/event-stream')
+            return
+
         @self.app.route('/number_of_people')
         def number_of_people():
             if request.headers.get('accept') == 'text/event-stream':
@@ -97,7 +109,7 @@ class StreamServer:
                         data = self.chart_data.getLast(1);
                         self.chartCondition.notify_all()
                         self.chartCondition.release()
-                        yield "data: %d %d %d %d %d %d\n\n" % (data['timestamp'][0],
+                        yield "data: %d;%d;%d;%d;%d;%d\n\n" % (data['timestamp'][0],
                                                          data['movements'][0][0]+data['movements'][0][1], # IN + OUT
                                                          data['movements'][0][0],
                                                          data['movements'][0][1],
@@ -109,7 +121,6 @@ class StreamServer:
             return # render_template('data_stream.html')
 
     def set_advertisement_image(self, condition):
-        print(condition)
         self.advertisement_description = condition[1]
         image = condition[0]
 
@@ -125,8 +136,11 @@ class StreamServer:
         importlib.reload(advertisement_condition)
         old__ref.__code__ = advertisement_condition.get_advertisement.__code__
 
+        if self.advertisement_state != image:
+            self.advertisement_condition.acquire()
+            self.advertisement_condition.notify_all()
+            self.advertisement_condition.release()
         self.advertisement_state = image
-        print(self.advertisement_state)
 
     def getFps(self):
         self.fps_gen.stop()
