@@ -19,8 +19,8 @@ def create_advertisement_condition():
         # print(conditions)
         for cond in conditions:
             condition_file.write('    if {}:\n'.format(cond[1].strip()))
-            condition_file.write('        return \'{}\'\n'.format(cond[0]))
-        condition_file.write('    return None\n')
+            condition_file.write('        return \'{}\', \'{}\'\n'.format(cond[0], cond[1].strip()))
+        condition_file.write('    return None, \'No satisfactory condition\'\n')
 
 
 

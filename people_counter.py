@@ -69,7 +69,7 @@ start_time = time.time()
 
 a = True
 while a:
-    # a = False
+    a = False
     if args["input"] is None:
         a = False
 
@@ -123,7 +123,7 @@ while a:
         if frame is None:
             break
 
-        if args["input"] is not None and totalFrames % 2 != 0:
+        if args["input"] is not None and totalFrames % 1 != 0:
             fps.update()
             totalFrames += 1
             continue
@@ -136,12 +136,20 @@ while a:
         # frame = imutils.resize(frame, width=1280)
         if args["input"] == "videos\walkingpeople.mp4":
             frame = frame[-480:, 400:-240, :]
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        elif args["input"] == "videos\custom.mp4":
+            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame = np.flip(frame, axis=0)
+            frame = np.flip(frame, axis=1)
+            frame = imutils.resize(frame, width=640)
+            rgb = frame
+            # print(rgb.shape)
         else:
             frame = imutils.resize(frame, width=640)
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # print(frame.shape)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        rgb = imutils.resize(rgb, width=rgb.shape[1])
+        # rgb = imutils.resize(rgb, width=rgb.shape[1])
 
         # if the frame dimensions are empty, set them
         if W is None or H is None:
@@ -229,6 +237,7 @@ while a:
 
                 # add the bounding box coordinates to the rectangles list
                 rects.append((startX, startY, endX, endY))
+                cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 1)
 
         frame = imutils.resize(frame, width=frame.shape[1])
         (H, W) = frame.shape[:2]
@@ -236,7 +245,7 @@ while a:
         # draw a horizontal line in the center of the frame -- once an
         # object crosses this line we will determine whether they were
         # moving 'up' or 'down'
-        cv2.line(frame, (0, H // 2), (W, H // 2), (0, 255, 255), 2)
+        # cv2.line(frame, (0, H // 2), (W, H // 2), (0, 255, 255), 2)
 
         # use the centroid tracker to associate the (1) old object
         # centroids with (2) the newly computed object centroids
@@ -317,17 +326,17 @@ while a:
         ]
 
         # loop over the info tuples and draw them on our frame
-        for (i, (k, v)) in enumerate(info):
-            text = "{}: {}".format(k, v)
-            cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        # for (i, (k, v)) in enumerate(info):
+        #     text = "{}: {}".format(k, v)
+        #     cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         # check to see if we should write the frame to disk
         if writer is not None:
             writer.write(frame)
 
         # show the output frame
-        # cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", frame)
 
         ss = streaming_thread.stream_server
         ss.c.acquire()
