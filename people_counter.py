@@ -12,6 +12,7 @@
 # import the necessary packages
 from pyimagesearch.centroidtracker import CentroidTracker
 from pyimagesearch.trackableobject import TrackableObject
+from pyimagesearch.centroidtracker import drop_overlapping_boxes
 from imutils.video import VideoStream
 from imutils.video import FPS
 import numpy as np
@@ -177,7 +178,10 @@ while a:
         if totalFrames % args["skip_frames"] == 0:
             # set the status and initialize our new set of object trackers
             status = "Detecting"
-            trackers = []
+
+            # Tracker candidates - we may not want to use every bounding box as a correlation tracker
+            # if boxes are way too much overlapping
+            tracker_box_candidates = []
 
             # convert the frame to a blob and pass the blob through the
             # network and obtain the detections
@@ -206,19 +210,27 @@ while a:
 
                     # compute the (x, y)-coordinates of the bounding box
                     # for the object
-                    box = detections[0, 0, i, 3:7] * np.array([W, H, W, H])
-                    (startX, startY, endX, endY) = box.astype("int")
+                    box = (detections[0, 0, i, 3:7] * np.array([W, H, W, H])).astype("int")
+                    tracker_box_candidates.append(box)
 
-                    # construct a dlib rectangle object from the bounding
-                    # box coordinates and then start the dlib correlation
-                    # tracker
-                    tracker = dlib.correlation_tracker()
-                    rect = dlib.rectangle(startX, startY, endX, endY)
-                    tracker.start_track(rgb, rect)
+            tracker_boxes = []
 
-                    # add the tracker to our list of trackers so we can
-                    # utilize it during skip frames
-                    trackers.append(tracker)
+            if len(tracker_box_candidates) > 0:
+                tracker_boxes = drop_overlapping_boxes(tracker_box_candidates)
+                print(len(tracker_box_candidates) - len(tracker_boxes))
+
+            trackers = []
+            for box in tracker_boxes:
+                # construct a dlib rectangle object from the bounding
+                # box coordinates and then start the dlib correlation
+                # tracker
+                tracker = dlib.correlation_tracker()
+                rect = dlib.rectangle(box[0], box[1], box[2], box[3])
+                tracker.start_track(rgb, rect)
+
+                # add the tracker to our list of trackers so we can
+                # utilize it during skip frames
+                trackers.append(tracker)
 
         # otherwise, we should utilize our object *trackers* rather than
         # object *detectors* to obtain a higher frame processing throughput

@@ -173,7 +173,7 @@ class StreamServer:
                    b'Content-Type: image/jpeg\r\n\r\n' + jpeg + b'\r\n')
 
     def run(self):
-        self.app.run(host='127.0.0.1', port=8888, debug=False)
+        self.app.run(host='127.0.0.1', port=8889, debug=False)
 
 
     def setMovingPeople(self, movements, timestamp):
