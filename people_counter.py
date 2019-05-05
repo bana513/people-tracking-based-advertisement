@@ -12,7 +12,8 @@
 # import the necessary packages
 from pyimagesearch.centroidtracker import CentroidTracker
 from pyimagesearch.trackableobject import TrackableObject
-from pyimagesearch.centroidtracker import drop_overlapping_boxes
+from pyimagesearch.tracker_box import drop_overlapping_boxes
+from pyimagesearch.tracker_box import TrackerBox
 from imutils.video import VideoStream
 from imutils.video import FPS
 import numpy as np
@@ -36,7 +37,9 @@ ap.add_argument("-i", "--input", type=str,
                 help="path to optional input video file")
 ap.add_argument("-o", "--output", type=str,
                 help="path to optional output video file")
-ap.add_argument("-c", "--confidence", type=float, default=0.4,
+ap.add_argument("-c", "--confidence-tracking", type=float, default=0.4,
+                help="minimum probability to filter weak detections")
+ap.add_argument("-d", "--confidence-detecting", type=float, default=0.85,
                 help="minimum probability to filter weak detections")
 ap.add_argument("-s", "--skip-frames", type=int, default=30,
                 help="# of skip frames between detections")
@@ -71,6 +74,7 @@ net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 start_time = time.time() # To calculate fps from the processing speed when using webcam
 
 a = True
+
 while a:
     a = False
     if args["input"] is None:
@@ -103,7 +107,7 @@ while a:
     # instantiate our centroid tracker, then initialize a list to store
     # each of our dlib correlation trackers, followed by a dictionary to
     # map each unique object ID to a TrackableObject
-    ct = CentroidTracker(maxDisappeared=40, maxDistance=50)
+    ct = CentroidTracker(maxDisappeared=40, maxDistance=80)
 
     trackers = []
     trackableObjects = {}
@@ -171,7 +175,7 @@ while a:
         # box rectangles returned by either (1) our object detector or
         # (2) the correlation trackers
         status = "Waiting"
-        rects = []
+        boxes = []
 
         # check to see if we should run a more computationally expensive
         # object detection method to aid our tracker
@@ -199,7 +203,7 @@ while a:
 
                 # filter out weak detections by requiring a minimum
                 # confidence
-                if confidence > args["confidence"]:
+                if confidence > args["confidence_tracking"]:
                     # extract the index of the class label from the
                     # detections list
                     idx = int(detections[0, 0, i, 1])
@@ -210,14 +214,17 @@ while a:
 
                     # compute the (x, y)-coordinates of the bounding box
                     # for the object
-                    box = (detections[0, 0, i, 3:7] * np.array([W, H, W, H])).astype("int")
+                    rect = (detections[0, 0, i, 3:7] * np.array([W, H, W, H])).astype("int")
+                    box = TrackerBox(rect, confidence)
                     tracker_box_candidates.append(box)
 
             tracker_boxes = []
 
             if len(tracker_box_candidates) > 0:
                 tracker_boxes = drop_overlapping_boxes(tracker_box_candidates)
-                print(len(tracker_box_candidates) - len(tracker_boxes))
+                dropped = len(tracker_box_candidates) - len(tracker_boxes)
+                # if dropped > 0:
+                #     print('Dropped tracker boxes because ovelapping: {}'.format(dropped))
 
             trackers = []
             for box in tracker_boxes:
@@ -225,12 +232,14 @@ while a:
                 # box coordinates and then start the dlib correlation
                 # tracker
                 tracker = dlib.correlation_tracker()
-                rect = dlib.rectangle(box[0], box[1], box[2], box[3])
+                rect = dlib.rectangle(box.coordinates[0], box.coordinates[1], box.coordinates[2], box.coordinates[3])
                 tracker.start_track(rgb, rect)
 
                 # add the tracker to our list of trackers so we can
                 # utilize it during skip frames
                 trackers.append(tracker)
+
+                boxes.append(box)
 
         # otherwise, we should utilize our object *trackers* rather than
         # object *detectors* to obtain a higher frame processing throughput
@@ -252,7 +261,7 @@ while a:
                 endY = int(pos.bottom())
 
                 # add the bounding box coordinates to the rectangles list
-                rects.append((startX, startY, endX, endY))
+                boxes.append(TrackerBox((startX, startY, endX, endY)))
                 cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 1)
 
         frame = imutils.resize(frame, width=frame.shape[1])
@@ -265,14 +274,14 @@ while a:
 
         # use the centroid tracker to associate the (1) old object
         # centroids with (2) the newly computed object centroids
-        objects = ct.update(rects)
+        objects = ct.update(boxes, args["confidence_detecting"])
 
         moving_in_left = 0
         moving_in_right = 0
         moving_out = 0
         moving_in = 0
 
-        # loop over the tracked objects
+        # loop over the tracked objects to show them
         for (objectID, centroid) in objects.items():
             # check to see if a trackable object exists for the current
             # object ID

@@ -37,10 +37,10 @@ class CentroidTracker:
         del self.objects[objectID]
         del self.disappeared[objectID]
 
-    def update(self, rects):
+    def update(self, boxes, confidence_tracking):
         # check to see if the list of input bounding box rectangles
         # is empty
-        if len(rects) == 0:
+        if len(boxes) == 0:
             # loop over any existing tracked objects and mark them
             # as disappeared
             for objectID in list(self.disappeared.keys()):
@@ -57,10 +57,11 @@ class CentroidTracker:
             return self.objects
 
         # initialize an array of input centroids for the current frame
-        inputCentroids = np.zeros((len(rects), 2), dtype="int")
+        inputCentroids = np.zeros((len(boxes), 2), dtype="int")
 
         # loop over the bounding box rectangles
-        for (i, (startX, startY, endX, endY)) in enumerate(rects):
+        for (i, box) in enumerate(boxes):
+            startX, startY, endX, endY = box.coordinates
             # use the bounding box coordinates to derive the centroid
             cX = int((startX + endX) / 2.0)
             cY = int((startY + endY) / 2.0)
@@ -158,38 +159,10 @@ class CentroidTracker:
             # register each new input centroid as a trackable object
             else:
                 for col in unusedCols:
-                    self.register(inputCentroids[col])
+                    if boxes[col].confidence > confidence_tracking:
+                        self.register(inputCentroids[col])
+                    # else:
+                    #     print('ID rejected by confidence value: {}'.format(boxes[col].confidence))
 
         # return the set of trackable objects
         return self.objects
-
-
-def __rect_overlapping(rect1, rect2):
-    # 0-3: left, bottom, rigth, top
-    rect1_area = (rect1[2] - rect1[0]) * (rect1[3] - rect1[1])
-
-    x_overlap = max(0, min(rect1[2], rect2[2]) - max(rect1[0], rect2[0]))
-    y_overlap = max(0, min(rect1[3], rect2[3]) - max(rect1[1], rect2[1]))
-    overlap_area = x_overlap * y_overlap
-
-    return overlap_area / rect1_area
-
-
-def drop_overlapping_boxes(candidates, overlapping = 0.5):
-    c = dist.cdist(candidates, candidates, __rect_overlapping)
-
-    # Every box overlap themself
-    for i in range(c.shape[0]):
-        c[i, i] = 0
-
-    # Keep boxes on these indexes
-    keep = {i for i in range(c.shape[0])}
-
-    while c.max() > overlapping:
-        rows = c.max(axis=1).argsort()[::-1]
-        row = rows[0]
-        keep.remove(row)
-        c[:, row] = 0
-        c[row, :] = 0
-
-    return [candidates[i] for i in keep]
