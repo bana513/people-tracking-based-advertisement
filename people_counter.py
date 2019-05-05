@@ -22,8 +22,10 @@ import dlib
 import cv2
 from stream_server import *
 
-# construct the argument parse and parse the arguments
+# Find OpenCV version - for reading fps of video files
+(major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
+# construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-p", "--prototxt", required=True,
                 help="path to Caffe 'deploy' prototxt file")
@@ -65,7 +67,7 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
 print("[INFO] loading model...")
 net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 
-start_time = time.time()
+start_time = time.time() # To calculate fps from the processing speed when using webcam
 
 a = True
 while a:
@@ -85,6 +87,9 @@ while a:
     else:
         print("[INFO] opening video file...")
         vs = cv2.VideoCapture(args["input"])
+
+        # Reading original fps of the video file
+        video_fps = vs.get(cv2.cv.CV_CAP_PROP_FPS) if int(major_ver) < 3 else vs.get(cv2.CAP_PROP_FPS)
 
     # initialize the video writer (we'll instantiate later if need be)
     writer = None
@@ -123,6 +128,7 @@ while a:
         if frame is None:
             break
 
+        # Skip some frames when using video file to make it more real time, few skips does not hurt to tracking
         if args["input"] is not None and totalFrames % 1 != 0:
             fps.update()
             totalFrames += 1
@@ -148,8 +154,6 @@ while a:
             frame = imutils.resize(frame, width=640)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # print(frame.shape)
-
-        # rgb = imutils.resize(rgb, width=rgb.shape[1])
 
         # if the frame dimensions are empty, set them
         if W is None or H is None:
@@ -343,7 +347,7 @@ while a:
         ss.current_frame = np.copy(frame)
 
         ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right],
-                           totalFrames // 25 if args["input"] is None else time.time() - start_time)
+                           totalFrames // video_fps if args["input"] is None else time.time() - start_time)
 
         ss.c.notify_all()
         ss.c.release()
