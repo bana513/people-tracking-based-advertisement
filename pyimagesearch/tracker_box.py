@@ -24,7 +24,7 @@ def __rect_overlapping(rect1, rect2):
     return overlap_area / rect1_area
 
 
-def drop_overlapping_boxes(candidates, overlapping = 0.5):
+def drop_overlapping_boxes(candidates, overlapping = 0.3):
     coord_candidates = [candidate.coordinates for candidate in candidates]
     c = dist.cdist(coord_candidates, coord_candidates, __rect_overlapping)
 
