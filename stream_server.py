@@ -140,6 +140,7 @@ class StreamServer:
             self.advertisement_condition.acquire()
             self.advertisement_condition.notify_all()
             self.advertisement_condition.release()
+
         self.advertisement_state = image
 
     def getFps(self):

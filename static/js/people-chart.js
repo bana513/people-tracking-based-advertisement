@@ -363,6 +363,7 @@ if (!!window.EventSource) {
   var description = document.getElementById("advertisementMessage");
   var description_source = new EventSource('/advertisement_description');
   description_source.onmessage = function(e) {
+      console.log("advertisement_description");
       console.log(e.data);
       description.innerHTML = e.data;
   }

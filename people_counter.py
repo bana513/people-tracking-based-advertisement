@@ -132,7 +132,7 @@ while a:
             break
 
         # Skip some frames when using video file to make it more real time, few skips does not hurt to tracking
-        if args["input"] is not None and totalFrames % 2 != 0:
+        if args["input"] is not None and totalFrames % 1 != 0:
             fps.update()
             totalFrames += 1
             continue
@@ -368,7 +368,7 @@ while a:
         ss.c.notify_all()
         ss.c.release()
 
-        key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKey(200) & 0xFF
 
         # if the `q` key was pressed, break from the loop
         if key == ord("q"):
