@@ -39,7 +39,7 @@ ap.add_argument("-o", "--output", type=str,
                 help="path to optional output video file")
 ap.add_argument("-c", "--confidence-tracking", type=float, default=0.4,
                 help="minimum probability to filter weak detections")
-ap.add_argument("-d", "--confidence-detecting", type=float, default=0.85,
+ap.add_argument("-d", "--confidence-detecting", type=float, default=0.95,
                 help="minimum probability to filter weak detections")
 ap.add_argument("-s", "--skip-frames", type=int, default=30,
                 help="# of skip frames between detections")
@@ -76,13 +76,12 @@ start_time = time.time() # To calculate fps from the processing speed when using
 a = True
 
 while a:
-    a = False
     if args["input"] is None:
         a = False
 
     if args["input"] is None:
         print("[INFO] starting video stream...")
-        vs = cv2.VideoCapture(1)
+        vs = cv2.VideoCapture(0) # In some cases replace 0 with 1 if not working
 
         if vs.isOpened():
             print("Camera OK")
@@ -126,7 +125,6 @@ while a:
         # grab the next frame and handle if we are reading from either
         # VideoCapture or VideoStream
         frame = vs.read()
-        # print(frame)
         # frame = frame[1] if args["input"] is None else frame
         frame = frame[1]
 
@@ -134,7 +132,7 @@ while a:
             break
 
         # Skip some frames when using video file to make it more real time, few skips does not hurt to tracking
-        if args["input"] is not None and totalFrames % 1 != 0:
+        if args["input"] is not None and totalFrames % 2 != 0:
             fps.update()
             totalFrames += 1
             continue
@@ -143,22 +141,19 @@ while a:
         # less data we have, the faster we can process it), then convert
         # the frame from BGR to RGB for dlib
 
-        # frame = imutils.resize(frame, width=frame.shape[1]//2)
-        # frame = imutils.resize(frame, width=1280)
+        # Added special slicing to test videos
+        # TODO: Remove these
         if args["input"] == "videos\walkingpeople.mp4":
             frame = frame[-480:, 400:-240, :]
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         elif args["input"] == "videos\custom.mp4":
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             frame = np.flip(frame, axis=0)
             frame = np.flip(frame, axis=1)
             frame = imutils.resize(frame, width=640)
             rgb = frame
-            # print(rgb.shape)
         else:
             frame = imutils.resize(frame, width=640)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # print(frame.shape)
 
         # if the frame dimensions are empty, set them
         if W is None or H is None:
@@ -368,7 +363,7 @@ while a:
         ss.current_frame = np.copy(frame)
 
         ss.setMovingPeople([moving_out, moving_in, moving_in_left, moving_in_right],
-                           totalFrames // video_fps if args["input"] is None else time.time() - start_time)
+                           totalFrames // video_fps if args["input"] is not None else time.time() - start_time)
 
         ss.c.notify_all()
         ss.c.release()
